@@ -1,0 +1,123 @@
+import { derived, readable, writable, type Writable, type Readable } from 'svelte/store';
+
+let clientPromise: Promise<Nimiq.Client> | undefined;
+
+export async function getClient(): Promise<Nimiq.Client> {
+    return clientPromise || (clientPromise = new Promise(async (resolve, reject) => {
+        await Nimiq.default();
+
+        const config = new Nimiq.ClientConfiguration();
+        config.logLevel('debug');
+        config.network('devalbatross');
+        config.seedNodes([
+            '/dns4/seed1.webauthn.pos.nimiqwatch.com/tcp/443/wss',
+            '/dns4/seed2.webauthn.pos.nimiqwatch.com/tcp/443/wss',
+            '/dns4/seed3.webauthn.pos.nimiqwatch.com/tcp/443/wss',
+            '/dns4/seed4.webauthn.pos.nimiqwatch.com/tcp/443/wss',
+        ]);
+
+        resolve(Nimiq.Client.create(config.build()));
+    }));
+}
+
+export const consensus = readable<Nimiq.ConsensusState>("connecting", (set) => {
+    let handle: number | undefined;
+
+    getClient().then((client) => {
+        client.isConsensusEstablished().then((established) => set(established ? "established" : "syncing"));
+
+        client.addConsensusChangedListener((consensusState) => {
+            set(consensusState)
+        }).then((h) => handle = h);
+    });
+
+    return () => {
+        if (!handle) return;
+
+        getClient().then((client) => {
+            client.removeListener(handle!);
+        });
+    }
+});
+
+export const peers = readable(0, (set) => {
+    let handle: number | undefined;
+
+    getClient().then((client) => {
+        client.addPeerChangedListener((peerId, reason, peerCount) => {
+            set(peerCount)
+        }).then((h) => handle = h);
+    });
+
+    return () => {
+        if (!handle) return;
+
+        getClient().then((client) => {
+            client.removeListener(handle!);
+        });
+    }
+});
+
+export const height = readable(0, (set) => {
+    let handle: number | undefined;
+
+    getClient().then((client) => {
+        client.getHeadHeight().then((height) => set(height));
+
+        client.addHeadChangedListener((hash) => {
+            client.getHeadHeight().then((height) => set(height));
+        }).then((h) => handle = h);
+    });
+
+    return () => {
+        if (!handle) return;
+
+        getClient().then((client) => {
+            client.removeListener(handle!);
+        });
+    }
+});
+
+export type Credential = {
+    id: string,
+    publicKey: string,
+};
+export const credential = writable<Credential | undefined>();
+export const address = derived<[Writable<Credential | undefined>], string | undefined>([credential], ([credential], set) => {
+    if (!credential) {
+        set(undefined);
+        return;
+    }
+    getClient().then(() => {
+        const key = Nimiq.WebauthnPublicKey.fromHex(credential.publicKey);
+        set(key.toAddress().toUserFriendlyAddress());
+    });
+});
+
+export const balance = derived<[Readable<string | undefined>], number | undefined>([address], ([address], set) => {
+    if (!address) {
+        set(undefined);
+        return;
+    }
+
+    let handle: number | undefined;
+
+    getClient().then(async (client) => {
+        await client.waitForConsensusEstablished();
+
+        client.getAccount(address).then((account) => set(account.balance));
+
+        client.addTransactionListener((transaction) => {
+            client.getAccount(address).then((account) => set(account.balance));
+        }, [address]).then((h) => handle = h);
+    });
+
+
+    return () => {
+        if (!handle) return;
+
+        getClient().then((client) => {
+            client.removeListener(handle!);
+        });
+    }
+});
