@@ -102,17 +102,39 @@ export async function sign(tx: Nimiq.Transaction, credentialId: string, publicKe
             challenge: fromHex(tx.hash()).buffer,
         },
     };
-    var assertion = await navigator.credentials.get(credentialRequestOptions) as PublicKeyCredential | null;
+    const assertion = await navigator.credentials.get(credentialRequestOptions) as PublicKeyCredential | null;
     if (!assertion) throw new Error("No assertation received");
 
-    var authenticatorData = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).authenticatorData);
-    var asn1Signature = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).signature);
+    const authenticatorData = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).authenticatorData);
+    const asn1Signature = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).signature);
+
+    // Find client data extra fields
+    const clientDataJSONBytes = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).clientDataJSON);
+    const clientDataJSON = new TextDecoder().decode(clientDataJSONBytes);
+
+    const crossOriginField = '"crossOrigin":false';
+    const originField = `"origin":"${location.origin.replaceAll('/', '\\/')}"`;
+
+    let clientDataExtraFields: string | undefined;
+
+    if (clientDataJSON.includes(crossOriginField)) {
+        const [_, extraFields] = clientDataJSON.split(crossOriginField, 2);
+        if (extraFields.length > 1) {
+            clientDataExtraFields = extraFields.slice(1, -1); // Cut off first comma and last curly brace
+        }
+    } else if (clientDataJSON.includes(originField)) {
+        const [_, extraFields] = clientDataJSON.split(originField, 2);
+        if (extraFields.length > 1) {
+            clientDataExtraFields = extraFields.slice(1, -1); // Cut off first comma and last curly brace
+        }
+    }
 
     const proof = Nimiq.SignatureProof.webauthnSingleSig(
         new Nimiq.WebauthnPublicKey(fromHex(publicKey)),
         Nimiq.Signature.fromAsn1(asn1Signature),
         location.host,
         authenticatorData,
+        clientDataExtraFields,
     );
 
     return proof.serializeExtended();
