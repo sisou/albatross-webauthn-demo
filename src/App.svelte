@@ -1,4 +1,31 @@
 <fieldset>
+    <legend>About</legend>
+    <p class="align-left">
+        This is a demo for <a href="https://github.com/nimiq/core-rs-albatross/pull/1867">Webauthn signature support</a> for Nimiq PoS Albatross.
+    </p>
+    <p class="align-left">
+        I am running a private devnet to which this web-client in your browser connects, both built from the <code>webauthn</code> branch.
+    </p>
+    <!-- <p class="align-left">
+        This demo is <a href="https://github.com/sisou/albatross-webauthn-demo">open-source on Github</a>.
+    </p> -->
+    <p class="align-left">
+        Tested so far with Android Chrome, iOS Safari, and Ledger FIDO U2F. Let me know any other authenticators that you have tested, both if they work and if they don't.
+    </p>
+</fieldset>
+<details>
+    <summary class="color-warn">Limitations</summary>
+    <div class="bg-warn rounded">
+        <p class="align-left">
+            This demo for now only supports registering a new credential (Passkey), even if you already created one in your ecosystem (Google Account / iCloud Keychain) on another device.
+        </p>
+        <!-- <p class="align-left">
+            Figuring out how to use an existing credential across devices is a future excercise.
+        </p> -->
+    </div>
+</details>
+
+<fieldset>
     <legend>Consensus</legend>
 
     <table>
@@ -17,39 +44,74 @@
     </table>
 </fieldset>
 
-{#if $consensus === 'established'}
-    <fieldset>
-        <legend>Account</legend>
+<fieldset class:disabled="{$consensus !== 'established'}">
+    <legend>Account</legend>
 
-        {#if !$credential}
-            <button on:click={registerCredential}>Register Webauthn Credential</button>
-        {:else}
-            <code>{ $address }</code><br>
-            <div class="balance">
-                <strong>Balance:</strong>
-                {#if $balance !== undefined}
-                    { $balance / 1e5 } NIM
-                    <button on:click="{tapFaucet}" disabled="{receiving}">Tap Faucet</button>
-                {:else}
-                    Loading...
-                {/if}
-            </div>
-        {/if}
-    </fieldset>
+    {#if !$credential}
+        <button on:click={registerCredential}>Register Webauthn Credential</button>
+    {:else}
+        <code>{ $address }<br></code>
+        <div class="balance">
+            <strong>Balance:</strong>
+            {#if $balance !== undefined}
+                { $balance / 1e5 } NIM
+                <button on:click="{tapFaucet}" disabled="{receiving}">💸 Tap Faucet</button>
+            {:else}
+                Loading...
+            {/if}
+        </div>
+    {/if}
+</fieldset>
+
+<fieldset class:disabled="{!$balance}">
+    <legend>Send Transaction</legend>
+
+    <button on:click="{send}" disabled="{sending}">Send 100 NIM to Faucet</button>
+</fieldset>
+
+{#if sentTransactionHash}
+<h3 class="color-success">Success</h3>
+<p>
+    The transaction was sent successfully 🎉
+</p>
+<code>{ sentTransactionHash.slice(0, 32) }<wbr>{ sentTransactionHash.slice(32) }</code>
 {/if}
 
-{#if $balance && $balance > 100}
-    <fieldset>
-        <legend>Send Transaction</legend>
+{#if signatureError}
+<h3 class="color-error">Error</h3>
+<p>
+    Unfortunately, the signature is invalid 🧐<br>
+    Please send me following information:
+</p>
+<button on:click="{copyError}">📋 Copy</button>
+<pre class="error-data align-left">
+Error: {signatureError}
 
-        <button on:click="{send}" disabled="{sending}">Send 100 NIM to Faucet</button>
-    </fieldset>
+PublicKey
+{$publicKey}
+
+AuthenticatorData
+{$authenticatorData}
+
+ClientDataJSON
+{$clientDataJSON}
+
+ASN1Signature
+{$asn1Signature}
+
+Transaction
+{$tx}
+
+Proof
+{$proof}
+</pre>
 {/if}
 
 <script lang="ts">
 import { onMount } from 'svelte';
 import { consensus, peers, height, address, balance, credential, getClient } from './stores/network';
 import { type Credential, register, sign } from './webauthn';
+import { publicKey, authenticatorData, clientDataJSON, asn1Signature, tx, proof} from './stores/debug';
 
 const GENESIS_ACCOUNTS = [
     { privkey: "a24591648e20642fe5107d0285c1cc35d67e2033a92566f1217fbd3a14e07abc"},
@@ -121,10 +183,15 @@ async function tapFaucet() {
 }
 
 let sending = false
+let signatureError: string | undefined;
+let sentTransactionHash: string | undefined;
 
 async function send() {
     if (!$credential) throw new Error('No credential');
     if (!$address) throw new Error('No address');
+
+    signatureError = undefined;
+    sentTransactionHash = undefined;
 
     const client = await getClient();
     const faucetKeypair = getFaucetKeyPair();
@@ -149,7 +216,7 @@ async function send() {
     try {
         tx.verify();
     } catch (error: any) {
-        alert(`Unfortunately, the signature is invalid. Please send the browser console output to Sören.\n\n${error.message}`);
+        signatureError = error.message;
         return;
     }
 
@@ -157,29 +224,82 @@ async function send() {
     try {
         const receipt = await client.sendTransaction(tx);
         console.log(receipt);
+        sentTransactionHash = receipt.transactionHash;
     } catch (error: any) {
         alert(error.message);
     }
     sending = false;
 }
+
+function copyError() {
+    const data = document.getElementsByClassName('error-data')[0].textContent!;
+    navigator.clipboard.writeText(data);
+}
 </script>
 
 <style>
-fieldset {
+.align-left {
+    text-align: left;
+}
+
+.color-success {
+    color: green;
+}
+
+.color-warn {
+    color: orange;
+}
+
+.color-error {
+    color: red;
+}
+
+.bg-warn {
+    background-color: orange;
+}
+
+details div {
+    padding: 0.75rem;
+}
+
+fieldset,
+.rounded {
     border-radius: 1rem;
 }
 
-fieldset + fieldset {
+fieldset + fieldset,
+fieldset + details,
+details + fieldset {
     margin-top: 2rem;
+}
+
+fieldset.disabled {
+    opacity: 0.4;
+    pointer-events: none;
 }
 
 fieldset > *:not(legend) {
     width: 100%;
 }
 
-fieldset legend {
+fieldset legend,
+details summary {
     font-weight: 600;
     text-transform: uppercase;
+}
+
+details summary {
+    cursor: pointer;
+}
+
+fieldset p:first-of-type,
+details p:first-of-type {
+    margin-top: 0;
+}
+
+fieldset p:last-of-type,
+details p:last-of-type {
+    margin-bottom: 0;
 }
 
 table {
@@ -208,5 +328,13 @@ table td:first-child {
 
 .balance button {
     margin-left: 0.5rem;
+}
+
+.error-data {
+    word-break: break-all;
+    white-space: pre-line;
+    background: #f0f0f0;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
 }
 </style>

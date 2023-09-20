@@ -1,4 +1,5 @@
 import { fromHex, toHex } from '@smithy/util-hex-encoding';
+import * as Debug from './stores/debug';
 
 export type Credential = {
     id: string,
@@ -151,11 +152,16 @@ export async function sign(tx: Nimiq.Transaction, credential: Credential) {
     }
 
     console.log("PUBLIC KEY", fromHex(credential.publicKey));
+    Debug.publicKey.set(credential.publicKey);
     console.log("AUTHENTICATOR DATA", authenticatorData);
+    Debug.authenticatorData.set(toHex(authenticatorData));
     console.log("CLIENT DATA JSON", clientDataJSON);
+    Debug.clientDataJSON.set(clientDataJSON);
     console.log("ASN1 SIGNATURE", asn1Signature);
+    Debug.asn1Signature.set(toHex(asn1Signature));
 
     console.log("TX", tx.serialize());
+    Debug.tx.set(tx.toHex());
 
     const proof = Nimiq.SignatureProof.webauthnSingleSig(
         new Nimiq.WebauthnPublicKey(fromHex(credential.publicKey)),
@@ -167,6 +173,7 @@ export async function sign(tx: Nimiq.Transaction, credential: Credential) {
     );
 
     console.log("PROOF", proof.serializeExtended());
+    Debug.proof.set(toHex(proof.serializeExtended()));
 
     return proof.serializeExtended();
 }
