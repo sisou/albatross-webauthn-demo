@@ -1,4 +1,5 @@
 import { derived, readable, writable, type Writable, type Readable } from 'svelte/store';
+import { type Credential } from '../webauthn';
 
 let clientPromise: Promise<Nimiq.Client> | undefined;
 
@@ -78,10 +79,6 @@ export const height = readable(0, (set) => {
     }
 });
 
-export type Credential = {
-    id: string,
-    publicKey: string,
-};
 export const credential = writable<Credential | undefined>();
 export const address = derived<[Writable<Credential | undefined>], string | undefined>([credential], ([credential], set) => {
     if (!credential) {

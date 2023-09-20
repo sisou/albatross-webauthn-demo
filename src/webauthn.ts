@@ -1,6 +1,12 @@
 import { fromHex, toHex } from '@smithy/util-hex-encoding';
 
-export async function register() {
+export type Credential = {
+    id: string,
+    publicKey: string,
+    transports?: AuthenticatorTransport[],
+};
+
+export async function register(): Promise<Credential> {
     const registrationChallenge = crypto.getRandomValues(new Uint8Array(32));
 
     const createCredentialOptions: CredentialCreationOptions = {
@@ -44,6 +50,7 @@ export async function register() {
     return {
         id: toHex(new Uint8Array(cred.rawId)),
         publicKey: toHex(publicKey),
+        transports: (cred.response as AuthenticatorAttestationResponse).getTransports() as AuthenticatorTransport[],
     };
 }
 
@@ -89,13 +96,13 @@ async function compressKey(spkiUncompressed: ArrayBuffer) {
     return compressed;
 }
 
-export async function sign(tx: Nimiq.Transaction, credentialId: string, publicKey: string) {
+export async function sign(tx: Nimiq.Transaction, credential: Credential) {
     const credentialRequestOptions: CredentialRequestOptions = {
         publicKey: {
             timeout: 60e3, // 1 minute
             allowCredentials: [{
-                id: fromHex(credentialId),
-                transports: ["usb", "nfc", "ble"],
+                id: fromHex(credential.id),
+                transports: credential.transports || ["usb", "nfc", "ble", "internal", "hybrid"], // allow all transports by default
                 type: "public-key",
             }],
             userVerification: "preferred",
@@ -143,7 +150,7 @@ export async function sign(tx: Nimiq.Transaction, credentialId: string, publicKe
         }
     }
 
-    console.log("PUBLIC KEY", fromHex(publicKey));
+    console.log("PUBLIC KEY", fromHex(credential.publicKey));
     console.log("AUTHENTICATOR DATA", authenticatorData);
     console.log("CLIENT DATA JSON", clientDataJSON);
     console.log("ASN1 SIGNATURE", asn1Signature);
@@ -151,7 +158,7 @@ export async function sign(tx: Nimiq.Transaction, credentialId: string, publicKe
     console.log("TX", tx.serialize());
 
     const proof = Nimiq.SignatureProof.webauthnSingleSig(
-        new Nimiq.WebauthnPublicKey(fromHex(publicKey)),
+        new Nimiq.WebauthnPublicKey(fromHex(credential.publicKey)),
         Nimiq.Signature.fromAsn1(asn1Signature),
         location.host,
         authenticatorData,

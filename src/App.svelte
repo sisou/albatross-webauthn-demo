@@ -48,8 +48,8 @@
 
 <script lang="ts">
 import { onMount } from 'svelte';
-import { consensus, peers, height, address, balance, type Credential, credential, getClient } from './stores/network';
-import { register, sign } from './webauthn';
+import { consensus, peers, height, address, balance, credential, getClient } from './stores/network';
+import { type Credential, register, sign } from './webauthn';
 
 const GENESIS_ACCOUNTS = [
     { privkey: "a24591648e20642fe5107d0285c1cc35d67e2033a92566f1217fbd3a14e07abc"},
@@ -135,7 +135,7 @@ async function send() {
         await client.getNetworkId(),
     );
 
-    const proof = await sign(tx, $credential.id, $credential.publicKey);
+    const proof = await sign(tx, $credential);
     tx.proof = proof;
 
     sending = true;
