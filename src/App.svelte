@@ -71,10 +71,13 @@ onMount(() => {
 });
 
 async function registerCredential() {
-    const newCredential = await register();
-    $credential = newCredential;
-
-    localStorage.setItem('credential', JSON.stringify(newCredential));
+    try {
+        const newCredential = await register();
+        $credential = newCredential;
+        localStorage.setItem('credential', JSON.stringify(newCredential));
+    } catch (error: any) {
+        alert(error.message);
+    }
 }
 
 let _faucetKeypair: Nimiq.KeyPair | undefined;
@@ -135,8 +138,20 @@ async function send() {
         await client.getNetworkId(),
     );
 
-    const proof = await sign(tx, $credential);
-    tx.proof = proof;
+    try {
+        const proof = await sign(tx, $credential);
+        tx.proof = proof;
+    } catch (error: any) {
+        alert(error.message);
+        return;
+    }
+
+    try {
+        tx.verify();
+    } catch (error: any) {
+        alert(`Unfortunately, the signature is invalid. Please send the browser console output to Sören.\n\n${error.message}`);
+        return;
+    }
 
     sending = true;
     try {
