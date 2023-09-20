@@ -113,7 +113,10 @@ export async function sign(tx: Nimiq.Transaction, credentialId: string, publicKe
     const clientDataJSON = new TextDecoder().decode(clientDataJSONBytes);
 
     const crossOriginField = '"crossOrigin":false';
-    const originField = `"origin":"${location.origin.replaceAll('/', '\\/')}"`;
+    const originFieldStandard = `"origin":"${location.origin}"`;
+    const originFieldEscaped = `"origin":"${location.origin.replaceAll('/', '\\/')}"`;
+
+    let clientDataFlags = 0;
 
     let clientDataExtraFields: string | undefined;
 
@@ -122,20 +125,41 @@ export async function sign(tx: Nimiq.Transaction, credentialId: string, publicKe
         if (extraFields.length > 1) {
             clientDataExtraFields = extraFields.slice(1, -1); // Cut off first comma and last curly brace
         }
-    } else if (clientDataJSON.includes(originField)) {
-        const [_, extraFields] = clientDataJSON.split(originField, 2);
-        if (extraFields.length > 1) {
-            clientDataExtraFields = extraFields.slice(1, -1); // Cut off first comma and last curly brace
+    } else {
+        clientDataFlags |= 1 << 0; // Set NO_CROSSORIGIN_FIELD flag
+
+        if (clientDataJSON.includes(originFieldStandard)) {
+            const [_, extraFields] = clientDataJSON.split(originFieldStandard, 2);
+            if (extraFields.length > 1) {
+                clientDataExtraFields = extraFields.slice(1, -1); // Cut off first comma and last curly brace
+            }
+        } else if (clientDataJSON.includes(originFieldEscaped)) {
+            clientDataFlags |= 1 << 1; // Set ESCAPED_ORIGIN_SLASHES flag
+
+            const [_, extraFields] = clientDataJSON.split(originFieldEscaped, 2);
+            if (extraFields.length > 1) {
+                clientDataExtraFields = extraFields.slice(1, -1); // Cut off first comma and last curly brace
+            }
         }
     }
+
+    console.log("PUBLIC KEY", fromHex(publicKey));
+    console.log("AUTHENTICATOR DATA", authenticatorData);
+    console.log("CLIENT DATA JSON", clientDataJSON);
+    console.log("ASN1 SIGNATURE", asn1Signature);
+
+    console.log("TX", tx.serialize());
 
     const proof = Nimiq.SignatureProof.webauthnSingleSig(
         new Nimiq.WebauthnPublicKey(fromHex(publicKey)),
         Nimiq.Signature.fromAsn1(asn1Signature),
         location.host,
         authenticatorData,
+        clientDataFlags,
         clientDataExtraFields,
     );
+
+    console.log("PROOF", proof.serializeExtended());
 
     return proof.serializeExtended();
 }
