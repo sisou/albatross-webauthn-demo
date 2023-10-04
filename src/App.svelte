@@ -44,7 +44,7 @@
     </table>
 </fieldset>
 
-<fieldset class:disabled="{$consensus !== 'established'}">
+<fieldset>
     <legend>Account</legend>
 
     {#if !$credential}
