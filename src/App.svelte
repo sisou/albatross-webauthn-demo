@@ -48,9 +48,10 @@
     <legend>Account</legend>
 
     {#if !$credential}
-        <button on:click={registerCredential}>Register Webauthn Credential</button>
+        <button on:click="{registerCredential}">Register Webauthn Credential</button>
     {:else}
-        <code>{ $address }<br></code>
+        <code>{ $address }</code>
+        <button on:click="{logout}">Logout</button>
         <div class="balance">
             <strong>Balance:</strong>
             {#if $balance !== undefined}
@@ -229,6 +230,11 @@ async function send() {
         alert(error.message);
     }
     sending = false;
+}
+
+function logout() {
+    $credential = undefined;
+    localStorage.removeItem('credential');
 }
 
 function copyError() {
