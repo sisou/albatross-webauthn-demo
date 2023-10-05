@@ -7,7 +7,11 @@ export type Credential = {
     transports?: AuthenticatorTransport[],
 };
 
+let conditionalMediationAbortController: AbortController | undefined;
+
 export async function register(): Promise<Credential> {
+    conditionalMediationAbortController?.abort();
+
     const registrationChallenge = crypto.getRandomValues(new Uint8Array(32));
 
     const createCredentialOptions: CredentialCreationOptions = {
@@ -31,11 +35,12 @@ export async function register(): Promise<Credential> {
 
             authenticatorSelection: {
                 userVerification: "preferred", // Should be "required", but that excludes Ledgers
+                requireResidentKey: true, // Required for allowing login with conditional mediation
             },
 
             timeout: 60e3, // 1 minute
 
-            challenge: registrationChallenge.buffer,
+            challenge: registrationChallenge,
         }
     };
 
@@ -43,14 +48,76 @@ export async function register(): Promise<Credential> {
     const cred = await navigator.credentials.create(createCredentialOptions) as PublicKeyCredential | null;
     if (!cred) throw new Error("No credential created");
 
-    // Convert public key from "spki" to compressed "raw" format
     const spkiPublicKey = (cred.response as AuthenticatorAttestationResponse).getPublicKey();
     if (!spkiPublicKey) throw new Error("No public key received");
+
+    await fetch('https://low-tuna-73.deno.dev/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            credentialId: cred.id,
+            spkiPublicKey: toHex(new Uint8Array(spkiPublicKey)),
+        }),
+    }).then(response => response.text()).then((status) => {
+        console.warn("Server registration:", status);
+
+        if (status !== 'OK') throw new Error("Server registration failed");
+    });
 
     return {
         id: toHex(new Uint8Array(cred.rawId)),
         publicKey: new Nimiq.WebauthnPublicKey(new Uint8Array(spkiPublicKey)).toHex(),
         transports: (cred.response as AuthenticatorAttestationResponse).getTransports() as AuthenticatorTransport[],
+    };
+}
+
+export async function login(challenge: Uint8Array, conditionalMediation: boolean): Promise<Credential> {
+    if (conditionalMediation) {
+        // To abort the request when chosing to register instead
+        conditionalMediationAbortController = new AbortController();
+    }
+
+    const credentialRequestOptions: CredentialRequestOptions = {
+        publicKey: {
+            timeout: 60e3, // 1 minute
+            allowCredentials: [],
+            userVerification: "preferred",
+            challenge: challenge,
+        },
+        ...(conditionalMediation ? {
+            mediation: "conditional",
+            signal: conditionalMediationAbortController!.signal,
+        } : {}),
+    };
+    const assertion = await navigator.credentials.get(credentialRequestOptions) as PublicKeyCredential | null;
+    if (!assertion) throw new Error("No assertation received");
+
+    console.log(assertion);
+
+    const credentialId = assertion.id;
+    const authenticatorData = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).authenticatorData);
+    const clientDataJSON = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).clientDataJSON);
+    const asn1Signature = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).signature);
+
+    const spkiPublicKey = await fetch('https://low-tuna-73.deno.dev/challenge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            credentialId,
+            authenticatorData: toHex(authenticatorData),
+            clientDataJSON: toHex(clientDataJSON),
+            asn1Signature: toHex(asn1Signature),
+        }),
+    }).then(async response => {
+        const text = await response.text();
+        if (!response.ok) throw new Error(text);
+        return text;
+    });
+    console.warn("SPKI Public Key:", spkiPublicKey);
+
+    return {
+        id: toHex(new Uint8Array(assertion.rawId)),
+        publicKey: new Nimiq.WebauthnPublicKey(fromHex(spkiPublicKey)).toHex(),
     };
 }
 
@@ -64,15 +131,15 @@ export async function sign(tx: Nimiq.Transaction, credential: Credential) {
                 type: "public-key",
             }],
             userVerification: "preferred",
-            challenge: fromHex(tx.hash()).buffer,
+            challenge: fromHex(tx.hash()),
         },
     };
     const assertion = await navigator.credentials.get(credentialRequestOptions) as PublicKeyCredential | null;
     if (!assertion) throw new Error("No assertation received");
 
-    const asn1Signature = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).signature);
     const authenticatorData = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).authenticatorData);
     const clientDataJSON = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).clientDataJSON);
+    const asn1Signature = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).signature);
 
     console.log("PUBLIC KEY", fromHex(credential.publicKey));
     Debug.publicKey.set(credential.publicKey);

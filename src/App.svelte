@@ -48,6 +48,18 @@
     <legend>Account</legend>
 
     {#if !$credential}
+        <!-- {#if canConditionallyWebauthn}
+            {#if loginChallenge}
+                <input type="text" placeholder="Click here to login" name="username" autocomplete="username webauthn">
+            {:else}
+                Loading Passkey Login challenge...
+            {/if}
+        {:else if canConditionallyWebauthn === false} -->
+            <button on:click="{passkeyLogin}">Login with Passkey</button>
+        <!-- {:else}
+            Testing Passkey Login availability...
+        {/if} -->
+        &mdash; or &mdash;
         <button on:click="{registerCredential}">Register Webauthn Credential</button>
     {:else}
         <code>{ $address }</code>
@@ -111,7 +123,7 @@ Proof
 <script lang="ts">
 import { onMount } from 'svelte';
 import { consensus, peers, height, address, balance, credential, getClient } from './stores/network';
-import { type Credential, register, sign } from './webauthn';
+import { type Credential, login, register, sign } from './webauthn';
 import { publicKey, authenticatorData, clientDataJSON, asn1Signature, tx, proof} from './stores/debug';
 
 const GENESIS_ACCOUNTS = [
@@ -132,6 +144,38 @@ onMount(() => {
         $credential = JSON.parse(storedCredential) as Credential;
     }
 });
+
+// let canConditionallyWebauthn: boolean | undefined;
+let loginChallenge: string | undefined;
+
+// if (window.PublicKeyCredential && PublicKeyCredential.isConditionalMediationAvailable) {
+//     PublicKeyCredential.isConditionalMediationAvailable().then(async (available) => {
+//         canConditionallyWebauthn = available;
+
+//         if (available) {
+//             loginChallenge = await fetch('https://low-tuna-73.deno.dev/challenge').then((response) => response.text());
+//             console.warn('Login challenge:', loginChallenge);
+//             // TODO: Refresh challenge every 1 minute
+
+//             const challenge = new Uint8Array(atob(loginChallenge!.replaceAll("_", "/").replaceAll("-", "+")).split('').map(c => c.charCodeAt(0)));
+//             const newCredential = await login(challenge, true);
+//             $credential = newCredential;
+//             localStorage.setItem('credential', JSON.stringify(newCredential));
+//         }
+//     });
+// } else {
+//     canConditionallyWebauthn = false;
+// };
+
+async function passkeyLogin() {
+    loginChallenge = await fetch('https://low-tuna-73.deno.dev/challenge').then((response) => response.text());
+    console.warn('Login challenge:', loginChallenge);
+
+    const challenge = new Uint8Array(atob(loginChallenge!.replaceAll("_", "/").replaceAll("-", "+")).split('').map(c => c.charCodeAt(0)));
+    const newCredential = await login(challenge, false);
+    $credential = newCredential;
+    localStorage.setItem('credential', JSON.stringify(newCredential));
+}
 
 async function registerCredential() {
     try {
