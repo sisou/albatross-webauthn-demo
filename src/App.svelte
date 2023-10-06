@@ -10,20 +10,9 @@
         This demo is <a href="https://github.com/sisou/albatross-webauthn-demo">open-source on Github</a>.
     </p> -->
     <p class="align-left">
-        Tested so far with Android Chrome, iOS Safari, and Ledger FIDO U2F. Let me know any other authenticators that you have tested, both if they work and if they don't.
+        Tested so far with Android Chrome and iOS Safari. Let me know any other authenticators that you have tested, both if they work and if they don't.
     </p>
 </fieldset>
-<details>
-    <summary class="color-warn">Limitations</summary>
-    <div class="bg-warn rounded">
-        <p class="align-left">
-            This demo for now only supports registering a new credential (Passkey), even if you already created one in your ecosystem (Google Account / iCloud Keychain) on another device.
-        </p>
-        <!-- <p class="align-left">
-            Figuring out how to use an existing credential across devices is a future excercise.
-        </p> -->
-    </div>
-</details>
 
 <fieldset>
     <legend>Consensus</legend>
@@ -60,7 +49,7 @@
             Testing Passkey Login availability...
         {/if} -->
         &mdash; or &mdash;
-        <button on:click="{registerCredential}">Register Webauthn Credential</button>
+        <button on:click="{registerCredential}">Register new Passkey</button>
     {:else}
         <code>{ $address }</code>
         <button on:click="{logout}">Logout</button>
@@ -308,18 +297,12 @@ function copyError() {
     background-color: orange;
 }
 
-details div {
-    padding: 0.75rem;
-}
-
 fieldset,
 .rounded {
     border-radius: 1rem;
 }
 
-fieldset + fieldset,
-fieldset + details,
-details + fieldset {
+fieldset + fieldset {
     margin-top: 2rem;
 }
 
@@ -332,23 +315,16 @@ fieldset > *:not(legend) {
     width: 100%;
 }
 
-fieldset legend,
-details summary {
+fieldset legend {
     font-weight: 600;
     text-transform: uppercase;
 }
 
-details summary {
-    cursor: pointer;
-}
-
-fieldset p:first-of-type,
-details p:first-of-type {
+fieldset p:first-of-type {
     margin-top: 0;
 }
 
-fieldset p:last-of-type,
-details p:last-of-type {
+fieldset p:last-of-type {
     margin-bottom: 0;
 }
 
