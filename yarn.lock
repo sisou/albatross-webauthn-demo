@@ -152,9 +152,9 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@nimiq/core-web@https://gitpkg.now.sh/nimiq/core-rs-albatross/web-client/dist?2ce2312858af5ab73051a1486df84924d96b7277":
+"@nimiq/core-web@https://gitpkg.now.sh/nimiq/core-rs-albatross/web-client/dist?284f04a5a1bb84a06319a31fa1745e7c50b842e9":
   version "2.0.0-alpha.15"
-  resolved "https://gitpkg.now.sh/nimiq/core-rs-albatross/web-client/dist?2ce2312858af5ab73051a1486df84924d96b7277#0c19235befab05ef3f16ecce41bfade6c48da1fc"
+  resolved "https://gitpkg.now.sh/nimiq/core-rs-albatross/web-client/dist?284f04a5a1bb84a06319a31fa1745e7c50b842e9#6480d5187642468dbeee45b0f26518d46f3cd2da"
   dependencies:
     comlink "^4.4.1"
     websocket "^1.0.34"
@@ -179,6 +179,10 @@
   dependencies:
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
+
+"@sisou/nimiq-ts@https://github.com/sisou/nimiq-ts#e95e21e7e4076460a179c79f753e6d10a892d4a9":
+  version "0.0.1"
+  resolved "https://github.com/sisou/nimiq-ts#e95e21e7e4076460a179c79f753e6d10a892d4a9"
 
 "@smithy/util-hex-encoding@^2.0.0":
   version "2.0.0"

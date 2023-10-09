@@ -1,3 +1,4 @@
+import { initialize, Entropy, PublicKey } from '@sisou/nimiq-ts';
 import { fromHex, toHex } from '@smithy/util-hex-encoding';
 import * as Debug from './stores/debug';
 
@@ -5,6 +6,7 @@ export type Credential = {
     id: string,
     publicKey: string,
     transports?: AuthenticatorTransport[],
+    multisigPubKey?: string,
 };
 
 let conditionalMediationAbortController: AbortController | undefined;
@@ -51,12 +53,18 @@ export async function register(): Promise<Credential> {
     const spkiPublicKey = (cred.response as AuthenticatorAttestationResponse).getPublicKey();
     if (!spkiPublicKey) throw new Error("No public key received");
 
+    await initialize();
+    const multisigEntropy = Entropy.generate();
+    const multisigExtPrivKey = multisigEntropy.toExtendedPrivateKey().derivePath("m/44'/242'/0'/0'"); // BIP44 path for Nimiq
+    const multisigPubKey = PublicKey.derive(multisigExtPrivKey.privateKey).toHex();
+
     await fetch('https://low-tuna-73.deno.dev/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             credentialId: cred.id,
             spkiPublicKey: toHex(new Uint8Array(spkiPublicKey)),
+            multisigPubKey,
         }),
     }).then(response => response.text()).then((status) => {
         console.warn("Server registration:", status);
@@ -68,6 +76,7 @@ export async function register(): Promise<Credential> {
         id: toHex(new Uint8Array(cred.rawId)),
         publicKey: new Nimiq.WebauthnPublicKey(new Uint8Array(spkiPublicKey)).toHex(),
         transports: (cred.response as AuthenticatorAttestationResponse).getTransports() as AuthenticatorTransport[],
+        multisigPubKey,
     };
 }
 
@@ -99,7 +108,7 @@ export async function login(challenge: Uint8Array, conditionalMediation: boolean
     const clientDataJSON = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).clientDataJSON);
     const asn1Signature = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).signature);
 
-    const spkiPublicKey = await fetch('https://low-tuna-73.deno.dev/challenge', {
+    const publicKeyData = await fetch('https://low-tuna-73.deno.dev/challenge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -109,15 +118,22 @@ export async function login(challenge: Uint8Array, conditionalMediation: boolean
             asn1Signature: toHex(asn1Signature),
         }),
     }).then(async response => {
-        const text = await response.text();
-        if (!response.ok) throw new Error(text);
-        return text;
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
+        return response.json() as Promise<{
+            spkiPublicKey: string, // hex
+            createdAt?: number, // unix timestamp (seconds)
+            lastAccessedAt?: number, // unix timestamp (seconds)
+            multisigPubKey?: string, // hex
+        }>;
     });
-    console.warn("SPKI Public Key:", spkiPublicKey);
+    console.warn("Public Key data:", publicKeyData);
 
     return {
         id: toHex(new Uint8Array(assertion.rawId)),
-        publicKey: new Nimiq.WebauthnPublicKey(fromHex(spkiPublicKey)).toHex(),
+        publicKey: new Nimiq.WebauthnPublicKey(fromHex(publicKeyData.spkiPublicKey)).toHex(),
+        multisigPubKey: publicKeyData.multisigPubKey,
     };
 }
 
@@ -153,12 +169,20 @@ export async function sign(tx: Nimiq.Transaction, credential: Credential) {
     console.log("TX", tx.serialize());
     Debug.tx.set(tx.toHex());
 
+    const webauthnPubKey = Nimiq.WebauthnPublicKey.fromHex(credential.publicKey);
+
     const proof = Nimiq.SignatureProof.webauthnSingleSig(
-        Nimiq.WebauthnPublicKey.fromHex(credential.publicKey),
+        webauthnPubKey,
         Nimiq.Signature.fromAsn1(asn1Signature),
         authenticatorData,
         clientDataJSON,
     );
+
+    if (credential.multisigPubKey) {
+        const multisigPubKey = Nimiq.PublicKey.fromHex(credential.multisigPubKey);
+        const merklePath = Nimiq.MerklePath.compute([webauthnPubKey.serialize(), multisigPubKey.serialize()], webauthnPubKey.serialize());
+        proof.merklePath = merklePath;
+    }
 
     console.log("PROOF", proof.serializeExtended());
     Debug.proof.set(toHex(proof.serializeExtended()));

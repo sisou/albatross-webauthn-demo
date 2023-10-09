@@ -1,5 +1,6 @@
 import { derived, readable, writable, type Writable, type Readable } from 'svelte/store';
 import { type Credential } from '../webauthn';
+import { tick } from 'svelte';
 
 let clientPromise: Promise<Nimiq.Client> | undefined;
 
@@ -87,7 +88,14 @@ export const address = derived<[Writable<Credential | undefined>], string | unde
     }
     getClient().then(() => {
         const key = Nimiq.WebauthnPublicKey.fromHex(credential.publicKey);
-        set(key.toAddress().toUserFriendlyAddress());
+        if (credential.multisigPubKey) {
+            const multisigPubKey = Nimiq.PublicKey.fromHex(credential.multisigPubKey);
+            const merkleRoot = Nimiq.MerkleTree.computeRoot([key.serialize(), multisigPubKey.serialize()]);
+            const address = new Nimiq.Address(merkleRoot);
+            set(address.toUserFriendlyAddress());
+        } else {
+            set(key.toAddress().toUserFriendlyAddress());
+        }
     });
 });
 
@@ -118,3 +126,13 @@ export const balance = derived<[Readable<string | undefined>], number | undefine
         });
     }
 });
+
+// @ts-expect-error
+window.refetchBalance = async () => {
+    let cred;
+    credential.subscribe((c) => { cred = c; })();
+    if (!cred) return;
+    credential.set(undefined);
+    await tick();
+    credential.set(cred);
+};
