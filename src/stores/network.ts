@@ -1,12 +1,21 @@
 import { derived, readable, writable, type Writable, type Readable } from 'svelte/store';
 import { type Credential } from '../webauthn';
 import { tick } from 'svelte';
+import { publicKeyFromCredential } from '../lib/PublicKey';
 
+let nimiqPromise: Promise<void> | undefined;
 let clientPromise: Promise<Nimiq.Client> | undefined;
+
+async function loadNimiq() {
+    return nimiqPromise || (nimiqPromise = new Promise(async (resolve, reject) => {
+        await Nimiq.default();
+        resolve();
+    }));
+}
 
 export async function getClient(): Promise<Nimiq.Client> {
     return clientPromise || (clientPromise = new Promise(async (resolve, reject) => {
-        await Nimiq.default();
+        await loadNimiq();
 
         const config = new Nimiq.ClientConfiguration();
         config.logLevel('debug');
@@ -86,8 +95,8 @@ export const address = derived<[Writable<Credential | undefined>], string | unde
         set(undefined);
         return;
     }
-    getClient().then(() => {
-        const key = Nimiq.WebauthnPublicKey.fromHex(credential.publicKey);
+    loadNimiq().then(() => {
+        const key = publicKeyFromCredential(credential);
         if (credential.multisigPubKey) {
             const multisigPubKey = Nimiq.PublicKey.fromHex(credential.multisigPubKey);
             const merkleRoot = Nimiq.MerkleTree.computeRoot([key.serialize(), multisigPubKey.serialize()]);

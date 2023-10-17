@@ -1,10 +1,12 @@
 import { initialize, Entropy, PublicKey } from '@sisou/nimiq-ts';
 import { fromHex, toHex } from '@smithy/util-hex-encoding';
 import * as Debug from './stores/debug';
+import { publicKeyFromCredential, publicKeyFromSpki } from './lib/PublicKey';
 
 export type Credential = {
     id: string,
     publicKey: string,
+    publicKeyAlgorithm?: number,
     transports?: AuthenticatorTransport[],
     multisigPubKey?: string,
 };
@@ -31,6 +33,10 @@ export async function register(): Promise<Credential> {
             },
 
             pubKeyCredParams: [{
+                // Prefer Ed25519
+                type: "public-key",
+                alg: -8 // Ed25519 = EDDSA over Curve25519 with SHA-512
+            }, {
                 type: "public-key",
                 alg: -7, // ES256 = ECDSA over P-256 with SHA-256
             }],
@@ -52,6 +58,7 @@ export async function register(): Promise<Credential> {
 
     const spkiPublicKey = (cred.response as AuthenticatorAttestationResponse).getPublicKey();
     if (!spkiPublicKey) throw new Error("No public key received");
+    const algorithm = (cred.response as AuthenticatorAttestationResponse).getPublicKeyAlgorithm();
 
     await initialize();
     const multisigEntropy = Entropy.generate();
@@ -64,6 +71,7 @@ export async function register(): Promise<Credential> {
         body: JSON.stringify({
             credentialId: cred.id,
             spkiPublicKey: toHex(new Uint8Array(spkiPublicKey)),
+            algorithm,
             multisigPubKey,
         }),
     }).then(response => response.text()).then((status) => {
@@ -72,9 +80,12 @@ export async function register(): Promise<Credential> {
         if (status !== 'OK') throw new Error("Server registration failed");
     });
 
+    const publicKeyAlgorithm = (cred.response as AuthenticatorAttestationResponse).getPublicKeyAlgorithm();
+
     return {
         id: toHex(new Uint8Array(cred.rawId)),
-        publicKey: new Nimiq.WebauthnPublicKey(new Uint8Array(spkiPublicKey)).toHex(),
+        publicKey: publicKeyFromSpki(spkiPublicKey, publicKeyAlgorithm).toHex(),
+        publicKeyAlgorithm,
         transports: (cred.response as AuthenticatorAttestationResponse).getTransports() as AuthenticatorTransport[],
         multisigPubKey,
     };
@@ -123,6 +134,7 @@ export async function login(challenge: Uint8Array, conditionalMediation: boolean
         }
         return response.json() as Promise<{
             spkiPublicKey: string, // hex
+            algorithm?: number, // COSEAlgorithmIdentifier
             createdAt?: number, // unix timestamp (seconds)
             lastAccessedAt?: number, // unix timestamp (seconds)
             multisigPubKey?: string, // hex
@@ -132,7 +144,8 @@ export async function login(challenge: Uint8Array, conditionalMediation: boolean
 
     return {
         id: toHex(new Uint8Array(assertion.rawId)),
-        publicKey: new Nimiq.WebauthnPublicKey(fromHex(publicKeyData.spkiPublicKey)).toHex(),
+        publicKey: publicKeyFromSpki(fromHex(publicKeyData.spkiPublicKey), publicKeyData.algorithm).toHex(),
+        publicKeyAlgorithm: publicKeyData.algorithm,
         multisigPubKey: publicKeyData.multisigPubKey,
     };
 }
@@ -169,10 +182,10 @@ export async function sign(tx: Nimiq.Transaction, credential: Credential) {
     console.log("TX", tx.serialize());
     Debug.tx.set(tx.toHex());
 
-    const webauthnPubKey = Nimiq.WebauthnPublicKey.fromHex(credential.publicKey);
+    const publicKey = publicKeyFromCredential(credential);
 
     const proof = Nimiq.SignatureProof.webauthnSingleSig(
-        webauthnPubKey,
+        publicKey,
         Nimiq.Signature.fromAsn1(asn1Signature),
         authenticatorData,
         clientDataJSON,
@@ -180,7 +193,7 @@ export async function sign(tx: Nimiq.Transaction, credential: Credential) {
 
     if (credential.multisigPubKey) {
         const multisigPubKey = Nimiq.PublicKey.fromHex(credential.multisigPubKey);
-        const merklePath = Nimiq.MerklePath.compute([webauthnPubKey.serialize(), multisigPubKey.serialize()], webauthnPubKey.serialize());
+        const merklePath = Nimiq.MerklePath.compute([publicKey.serialize(), multisigPubKey.serialize()], publicKey.serialize());
         proof.merklePath = merklePath;
     }
 
