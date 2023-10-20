@@ -5,12 +5,13 @@
     </p>
     <p class="align-left">
         I am running a private devnet to which this web-client in your browser connects, both built from the <code>webauthn</code> branch.
+        The network resets every 6 hours so that sync times stay low, as I'm not runnig a ZKP prover.
     </p>
     <!-- <p class="align-left">
         This demo is <a href="https://github.com/sisou/albatross-webauthn-demo">open-source on Github</a>.
     </p> -->
     <p class="align-left">
-        Tested so far with Android Chrome and iOS Safari. Let me know any other authenticators that you have tested, both if they work and if they don't.
+        Tested so far with Android Passkeys, iCloud Keychain and Yubikey Series 5. Let me know any other authenticators that you have tested, both if they work and if they don't.
     </p>
 </fieldset>
 
