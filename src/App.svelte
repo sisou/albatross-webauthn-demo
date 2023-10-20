@@ -151,13 +151,17 @@ let loginChallenge: string | undefined;
 // };
 
 async function passkeyLogin() {
-    loginChallenge = await fetch('https://low-tuna-73.deno.dev/challenge').then((response) => response.text());
-    console.warn('Login challenge:', loginChallenge);
+    try {
+        loginChallenge = await fetch('https://low-tuna-73.deno.dev/challenge').then((response) => response.text());
+        console.warn('Login challenge:', loginChallenge);
 
-    const challenge = new Uint8Array(atob(loginChallenge!.replaceAll("_", "/").replaceAll("-", "+")).split('').map(c => c.charCodeAt(0)));
-    const newCredential = await login(challenge, false);
-    $credential = newCredential;
-    localStorage.setItem('credential', JSON.stringify(newCredential));
+        const challenge = new Uint8Array(atob(loginChallenge!.replaceAll("_", "/").replaceAll("-", "+")).split('').map(c => c.charCodeAt(0)));
+        const newCredential = await login(challenge, false);
+        $credential = newCredential;
+        localStorage.setItem('credential', JSON.stringify(newCredential));
+    } catch (error: any) {
+        alert(error.message);
+    }
 }
 
 async function registerCredential() {
