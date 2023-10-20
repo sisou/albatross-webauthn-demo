@@ -98,8 +98,8 @@ AuthenticatorData
 ClientDataJSON
 {$clientDataJSON}
 
-ASN1Signature
-{$asn1Signature}
+Signature
+{$signature}
 
 Transaction
 {$tx}
@@ -113,17 +113,10 @@ Proof
 import { onMount } from 'svelte';
 import { consensus, peers, height, address, balance, credential, getClient } from './stores/network';
 import { type Credential, login, register, sign } from './webauthn';
-import { publicKey, authenticatorData, clientDataJSON, asn1Signature, tx, proof} from './stores/debug';
+import { publicKey, authenticatorData, clientDataJSON, signature, tx, proof} from './stores/debug';
 
 const GENESIS_ACCOUNTS = [
-    { privkey: "a24591648e20642fe5107d0285c1cc35d67e2033a92566f1217fbd3a14e07abc"},
     { privkey: "3336f25f5b4272a280c8eb8c1288b39bd064dfb32ebc799459f707a0e88c4e5f"},
-    { privkey: "6ca225de8c2a091a31ae48645453641069ae8a9d3158e9d6e004b417661af500"},
-    { privkey: "5899a573451f72a4a1e58c7de3e091a1846d14bd82c98e4bfdaf1857986de7d8"},
-    { privkey: "652be07036bf791644260eaa388534d7dbecb579c69bf3b70c0714ae7d5fdcc2"},
-    { privkey: "e3e552194e1e56fb47ccc6eb8becea1c1b813ec23ae7613edff12be152a2e812"},
-    { privkey: "c88cb69af940cc58a1f5aa8f1d943b53893a913af48d873c2e83169644b30edc"},
-    { privkey: "1ef7aad365c195462ed04c275d47189d5362bbfe36b5e93ce7ba2f3add5f439b"},
 ];
 
 onMount(() => {

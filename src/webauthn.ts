@@ -2,6 +2,7 @@ import { initialize, Entropy, PublicKey } from '@sisou/nimiq-ts';
 import { fromHex, toHex } from '@smithy/util-hex-encoding';
 import * as Debug from './stores/debug';
 import { publicKeyFromCredential, publicKeyFromSpki } from './lib/PublicKey';
+import { signatureFromAuthenticator } from './lib/Signature';
 
 export type Credential = {
     id: string,
@@ -168,7 +169,7 @@ export async function sign(tx: Nimiq.Transaction, credential: Credential) {
 
     const authenticatorData = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).authenticatorData);
     const clientDataJSON = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).clientDataJSON);
-    const asn1Signature = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).signature);
+    const signature = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).signature);
 
     console.log("PUBLIC KEY", fromHex(credential.publicKey));
     Debug.publicKey.set(credential.publicKey);
@@ -176,8 +177,8 @@ export async function sign(tx: Nimiq.Transaction, credential: Credential) {
     Debug.authenticatorData.set(toHex(authenticatorData));
     console.log("CLIENT DATA JSON", clientDataJSON);
     Debug.clientDataJSON.set(new TextDecoder().decode(clientDataJSON));
-    console.log("ASN1 SIGNATURE", asn1Signature);
-    Debug.asn1Signature.set(toHex(asn1Signature));
+    console.log("SIGNATURE", signature);
+    Debug.signature.set(toHex(signature));
 
     console.log("TX", tx.serialize());
     Debug.tx.set(tx.toHex());
@@ -186,7 +187,7 @@ export async function sign(tx: Nimiq.Transaction, credential: Credential) {
 
     const proof = Nimiq.SignatureProof.webauthnSingleSig(
         publicKey,
-        Nimiq.Signature.fromAsn1(asn1Signature),
+        signatureFromAuthenticator(signature, credential.publicKeyAlgorithm),
         authenticatorData,
         clientDataJSON,
     );
@@ -197,8 +198,8 @@ export async function sign(tx: Nimiq.Transaction, credential: Credential) {
         proof.merklePath = merklePath;
     }
 
-    console.log("PROOF", proof.serializeExtended());
-    Debug.proof.set(toHex(proof.serializeExtended()));
+    console.log("PROOF", proof.serialize());
+    Debug.proof.set(toHex(proof.serialize()));
 
-    return proof.serializeExtended();
+    return proof.serialize();
 }
