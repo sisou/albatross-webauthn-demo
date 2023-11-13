@@ -185,17 +185,23 @@ export async function sign(tx: Nimiq.Transaction, credential: Credential) {
 
     const publicKey = publicKeyFromCredential(credential);
 
-    const proof = Nimiq.SignatureProof.webauthnSingleSig(
-        publicKey,
-        signatureFromAuthenticator(signature, credential.publicKeyAlgorithm),
-        authenticatorData,
-        clientDataJSON,
-    );
-
+    let proof: Nimiq.SignatureProof;
     if (credential.multisigPubKey) {
         const multisigPubKey = Nimiq.PublicKey.fromHex(credential.multisigPubKey);
-        const merklePath = Nimiq.MerklePath.compute([publicKey.serialize(), multisigPubKey.serialize()], publicKey.serialize());
-        proof.merklePath = merklePath;
+        proof = Nimiq.SignatureProof.webauthnMultiSig(
+            publicKey,
+            [publicKey, multisigPubKey],
+            signatureFromAuthenticator(signature, credential.publicKeyAlgorithm),
+            authenticatorData,
+            clientDataJSON,
+        );
+    } else {
+        proof = Nimiq.SignatureProof.webauthnSingleSig(
+            publicKey,
+            signatureFromAuthenticator(signature, credential.publicKeyAlgorithm),
+            authenticatorData,
+            clientDataJSON,
+        );
     }
 
     console.log("PROOF", proof.serialize());
