@@ -123,7 +123,9 @@ export const balance = derived<[Readable<string | undefined>], number | undefine
 
         client.getAccount(address).then((account) => set(account.balance));
 
-        client.addTransactionListener((transaction) => {
+        client.addTransactionListener(async (transaction) => {
+            // Wait a short time to give transaction and block time to propagate
+            await new Promise((resolve) => setTimeout(resolve, 500));
             client.getAccount(address).then((account) => set(account.balance));
         }, [address]).then((h) => handle = h);
     });
