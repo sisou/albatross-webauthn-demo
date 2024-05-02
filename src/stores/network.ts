@@ -19,15 +19,15 @@ export async function getClient(): Promise<Nimiq.Client> {
 
         const config = new Nimiq.ClientConfiguration();
         config.logLevel('debug');
-        config.network('devalbatross');
-        config.seedNodes([
-            // '/dns4/seed1.nimiq.local/tcp/8401/ws'
-            '/dns4/seed1.webauthn.pos.nimiqwatch.com/tcp/443/wss',
-            '/dns4/validator1.webauthn.pos.nimiqwatch.com/tcp/443/wss',
-            '/dns4/validator2.webauthn.pos.nimiqwatch.com/tcp/443/wss',
-            '/dns4/validator3.webauthn.pos.nimiqwatch.com/tcp/443/wss',
-            '/dns4/validator4.webauthn.pos.nimiqwatch.com/tcp/443/wss',
-        ]);
+        // config.network('devalbatross');
+        // config.seedNodes([
+        //     // '/dns4/seed1.nimiq.local/tcp/8401/ws'
+        //     '/dns4/seed1.webauthn.pos.nimiqwatch.com/tcp/443/wss',
+        //     '/dns4/validator1.webauthn.pos.nimiqwatch.com/tcp/443/wss',
+        //     '/dns4/validator2.webauthn.pos.nimiqwatch.com/tcp/443/wss',
+        //     '/dns4/validator3.webauthn.pos.nimiqwatch.com/tcp/443/wss',
+        //     '/dns4/validator4.webauthn.pos.nimiqwatch.com/tcp/443/wss',
+        // ]);
 
         resolve(Nimiq.Client.create(config.build()));
     }));
