@@ -9,7 +9,7 @@ export default defineConfig({
     externalize({ externals: ['/nimiq/web/index.js'] }),
     viteStaticCopy({
       targets: [
-        { src: './node_modules/@nimiq/core-web/(lib|web)', dest: 'nimiq' },
+        { src: './node_modules/@nimiq/core/(lib|web)', dest: 'nimiq' },
       ],
     }),
     svelte(),

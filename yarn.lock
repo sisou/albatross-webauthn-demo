@@ -152,9 +152,10 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@nimiq/core-web@https://gitpkg.now.sh/nimiq/core-rs-albatross/web-client/dist?787072d49de63220c9e2f5424c6bf199164b7b2c":
-  version "2.0.0-alpha.21.0"
-  resolved "https://gitpkg.now.sh/nimiq/core-rs-albatross/web-client/dist?787072d49de63220c9e2f5424c6bf199164b7b2c#449a29ca2cf5233bfaf8fa980ca42e3d75a1eab8"
+"@nimiq/core@next":
+  version "2.0.0-next.22.1"
+  resolved "https://registry.yarnpkg.com/@nimiq/core/-/core-2.0.0-next.22.1.tgz#8321be1f3b5236552fb8eee033cf2b3a88751e70"
+  integrity sha512-wI5kf53jVwUUiZ0qa/OUWrJvfMnbrYd+iNYPfGanWHoPuLlocsQ6scQ/ym+wvQXMDDEqilhCiXJs6tIsdCL8qA==
   dependencies:
     comlink "^4.4.1"
     websocket "^1.0.34"
