@@ -110,7 +110,7 @@ import { type Credential, login, register, sign } from './webauthn';
 import { publicKey, authenticatorData, clientDataJSON, signature, tx, proof} from './stores/debug';
 
 const GENESIS_ACCOUNTS = [
-    { privkey: "3336f25f5b4272a280c8eb8c1288b39bd064dfb32ebc799459f707a0e88c4e5f"},
+    { privkey: "3336f25f5b4272a280c8eb8c1288b39bd064dfb32ebc799459f707a0e88c4e5f"}, // NQ87 HKRC JYGR PJN5 KQYQ 5TM1 26XX 7TNG YT27
 ];
 
 onMount(() => {
