@@ -133,7 +133,7 @@ let loginChallenge: string | undefined;
 //             console.warn('Login challenge:', loginChallenge);
 //             // TODO: Refresh challenge every 1 minute
 
-//             const challenge = new Uint8Array(atob(loginChallenge!.replaceAll("_", "/").replaceAll("-", "+")).split('').map(c => c.charCodeAt(0)));
+//             const challenge = Nimiq.BufferUtils.fromBase64Url(loginChallenge!);
 //             const newCredential = await login(challenge, true);
 //             $credential = newCredential;
 //             localStorage.setItem('credential', JSON.stringify(newCredential));
@@ -148,7 +148,7 @@ async function passkeyLogin() {
         loginChallenge = await fetch('https://low-tuna-73.deno.dev/challenge').then((response) => response.text());
         console.warn('Login challenge:', loginChallenge);
 
-        const challenge = new Uint8Array(atob(loginChallenge!.replaceAll("_", "/").replaceAll("-", "+")).split('').map(c => c.charCodeAt(0)));
+        const challenge = Nimiq.BufferUtils.fromBase64Url(loginChallenge!);
         const newCredential = await login(challenge, false);
         $credential = newCredential;
         localStorage.setItem('credential', JSON.stringify(newCredential));

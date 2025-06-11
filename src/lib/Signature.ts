@@ -5,7 +5,7 @@ export function signatureFromAuthenticator(buffer: ArrayBuffer, algorithm?: numb
         // Signature schemes added after the initial ones are recommended not to use ASN.1 encoding, but raw bytes instead.
         // Yubikey provides the raw 64-byte signature.
         if (buffer.byteLength === 64) {
-            return Nimiq.Signature.fromBytes(new Uint8Array(buffer));
+            return Nimiq.Signature.deserialize(new Uint8Array(buffer));
         } else {
             return Nimiq.Signature.fromAsn1(new Uint8Array(buffer));
         }

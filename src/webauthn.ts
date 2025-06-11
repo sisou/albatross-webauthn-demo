@@ -103,7 +103,7 @@ export async function login(challenge: Uint8Array, conditionalMediation: boolean
             timeout: 60e3, // 1 minute
             allowCredentials: [],
             userVerification: "preferred",
-            challenge: challenge,
+            challenge,
         },
         ...(conditionalMediation ? {
             mediation: "conditional",

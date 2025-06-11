@@ -140,7 +140,7 @@ export const balance = derived<[Readable<string | undefined>], number | undefine
 
 // @ts-expect-error
 window.refetchBalance = async () => {
-    let cred;
+    let cred: Credential | undefined;
     credential.subscribe((c) => { cred = c; })();
     if (!cred) return;
     credential.set(undefined);
