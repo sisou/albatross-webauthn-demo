@@ -181,10 +181,6 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@sisou/nimiq-ts@https://github.com/sisou/nimiq-ts#e95e21e7e4076460a179c79f753e6d10a892d4a9":
-  version "0.0.1"
-  resolved "https://github.com/sisou/nimiq-ts#e95e21e7e4076460a179c79f753e6d10a892d4a9"
-
 "@smithy/util-hex-encoding@^2.0.0":
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/@smithy/util-hex-encoding/-/util-hex-encoding-2.0.0.tgz#0aa3515acd2b005c6d55675e377080a7c513b59e"

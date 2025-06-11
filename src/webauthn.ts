@@ -1,4 +1,3 @@
-import { initialize, Entropy, PublicKey } from '@sisou/nimiq-ts';
 import { fromHex, toHex } from '@smithy/util-hex-encoding';
 import * as Debug from './stores/debug';
 import { publicKeyFromCredential, publicKeyFromSpki } from './lib/PublicKey';
@@ -61,10 +60,9 @@ export async function register(): Promise<Credential> {
     if (!spkiPublicKey) throw new Error("No public key received");
     const algorithm = (cred.response as AuthenticatorAttestationResponse).getPublicKeyAlgorithm();
 
-    await initialize();
-    const multisigEntropy = Entropy.generate();
+    const multisigEntropy = Nimiq.Entropy.generate();
     const multisigExtPrivKey = multisigEntropy.toExtendedPrivateKey().derivePath("m/44'/242'/0'/0'"); // BIP44 path for Nimiq
-    const multisigPubKey = PublicKey.derive(multisigExtPrivKey.privateKey).toHex();
+    const multisigPubKey = Nimiq.PublicKey.derive(multisigExtPrivKey.privateKey).toHex();
 
     await fetch('https://low-tuna-73.deno.dev/register', {
         method: 'POST',
