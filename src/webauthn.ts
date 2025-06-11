@@ -1,4 +1,3 @@
-import { fromHex, toHex } from '@smithy/util-hex-encoding';
 import * as Debug from './stores/debug';
 import { publicKeyFromCredential, publicKeyFromSpki } from './lib/PublicKey';
 import { signatureFromAuthenticator } from './lib/Signature';
@@ -69,7 +68,7 @@ export async function register(): Promise<Credential> {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             credentialId: cred.id,
-            spkiPublicKey: toHex(new Uint8Array(spkiPublicKey)),
+            spkiPublicKey: Nimiq.BufferUtils.toHex(new Uint8Array(spkiPublicKey)),
             algorithm,
             multisigPubKey,
         }),
@@ -82,7 +81,7 @@ export async function register(): Promise<Credential> {
     const publicKeyAlgorithm = (cred.response as AuthenticatorAttestationResponse).getPublicKeyAlgorithm();
 
     return {
-        id: toHex(new Uint8Array(cred.rawId)),
+        id: Nimiq.BufferUtils.toHex(new Uint8Array(cred.rawId)),
         publicKey: publicKeyFromSpki(spkiPublicKey, publicKeyAlgorithm).toHex(),
         publicKeyAlgorithm,
         transports: (cred.response as AuthenticatorAttestationResponse).getTransports() as AuthenticatorTransport[],
@@ -123,9 +122,9 @@ export async function login(challenge: Uint8Array, conditionalMediation: boolean
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             credentialId,
-            authenticatorData: toHex(authenticatorData),
-            clientDataJSON: toHex(clientDataJSON),
-            asn1Signature: toHex(asn1Signature),
+            authenticatorData: Nimiq.BufferUtils.toHex(authenticatorData),
+            clientDataJSON: Nimiq.BufferUtils.toHex(clientDataJSON),
+            asn1Signature: Nimiq.BufferUtils.toHex(asn1Signature),
         }),
     }).then(async response => {
         if (!response.ok) {
@@ -142,8 +141,8 @@ export async function login(challenge: Uint8Array, conditionalMediation: boolean
     console.warn("Public Key data:", publicKeyData);
 
     return {
-        id: toHex(new Uint8Array(assertion.rawId)),
-        publicKey: publicKeyFromSpki(fromHex(publicKeyData.spkiPublicKey), publicKeyData.algorithm).toHex(),
+        id: Nimiq.BufferUtils.toHex(new Uint8Array(assertion.rawId)),
+        publicKey: publicKeyFromSpki(Nimiq.BufferUtils.fromHex(publicKeyData.spkiPublicKey), publicKeyData.algorithm).toHex(),
         publicKeyAlgorithm: publicKeyData.algorithm,
         multisigPubKey: publicKeyData.multisigPubKey,
     };
@@ -154,12 +153,12 @@ export async function sign(tx: Nimiq.Transaction, credential: Credential) {
         publicKey: {
             timeout: 60e3, // 1 minute
             allowCredentials: [{
-                id: fromHex(credential.id),
+                id: Nimiq.BufferUtils.fromHex(credential.id),
                 transports: credential.transports || ["usb", "nfc", "ble", "internal", "hybrid"], // allow all transports by default
                 type: "public-key",
             }],
             userVerification: "preferred",
-            challenge: fromHex(tx.hash()),
+            challenge: Nimiq.BufferUtils.fromHex(tx.hash()),
         },
     };
     const assertion = await navigator.credentials.get(credentialRequestOptions) as PublicKeyCredential | null;
@@ -169,14 +168,14 @@ export async function sign(tx: Nimiq.Transaction, credential: Credential) {
     const clientDataJSON = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).clientDataJSON);
     const signature = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).signature);
 
-    console.log("PUBLIC KEY", fromHex(credential.publicKey));
+    console.log("PUBLIC KEY", Nimiq.BufferUtils.fromHex(credential.publicKey));
     Debug.publicKey.set(credential.publicKey);
     console.log("AUTHENTICATOR DATA", authenticatorData);
-    Debug.authenticatorData.set(toHex(authenticatorData));
+    Debug.authenticatorData.set(Nimiq.BufferUtils.toHex(authenticatorData));
     console.log("CLIENT DATA JSON", clientDataJSON);
     Debug.clientDataJSON.set(new TextDecoder().decode(clientDataJSON));
     console.log("SIGNATURE", signature);
-    Debug.signature.set(toHex(signature));
+    Debug.signature.set(Nimiq.BufferUtils.toHex(signature));
 
     console.log("TX", tx.serialize());
     Debug.tx.set(tx.toHex());
@@ -203,7 +202,7 @@ export async function sign(tx: Nimiq.Transaction, credential: Credential) {
     }
 
     console.log("PROOF", proof.serialize());
-    Debug.proof.set(toHex(proof.serialize()));
+    Debug.proof.set(Nimiq.BufferUtils.toHex(proof.serialize()));
 
     return proof.serialize();
 }

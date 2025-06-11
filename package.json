@@ -11,7 +11,6 @@
   },
   "devDependencies": {
     "@nimiq/core": "^2.1.0",
-    "@smithy/util-hex-encoding": "^2.0.0",
     "@sveltejs/vite-plugin-svelte": "^2.4.2",
     "@tsconfig/svelte": "^5.0.0",
     "svelte": "^4.0.5",
