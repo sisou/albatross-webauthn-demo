@@ -10,7 +10,7 @@
     "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "devDependencies": {
-    "@nimiq/core": "next",
+    "@nimiq/core": "^2.1.0",
     "@sisou/nimiq-ts": "https://github.com/sisou/nimiq-ts#e95e21e7e4076460a179c79f753e6d10a892d4a9",
     "@smithy/util-hex-encoding": "^2.0.0",
     "@sveltejs/vite-plugin-svelte": "^2.4.2",
