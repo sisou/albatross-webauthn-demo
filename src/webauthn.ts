@@ -63,7 +63,7 @@ export async function register(): Promise<Credential> {
     const multisigExtPrivKey = multisigEntropy.toExtendedPrivateKey().derivePath("m/44'/242'/0'/0'"); // BIP44 path for Nimiq
     const multisigPubKey = Nimiq.PublicKey.derive(multisigExtPrivKey.privateKey).toHex();
 
-    await fetch('https://low-tuna-73.deno.dev/register', {
+    await fetch('https://webauthn-server.sisou.deno.net/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -117,7 +117,7 @@ export async function login(challenge: Uint8Array, conditionalMediation: boolean
     const clientDataJSON = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).clientDataJSON);
     const asn1Signature = new Uint8Array((assertion.response as AuthenticatorAssertionResponse).signature);
 
-    const publicKeyData = await fetch('https://low-tuna-73.deno.dev/challenge', {
+    const publicKeyData = await fetch('https://webauthn-server.sisou.deno.net/challenge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

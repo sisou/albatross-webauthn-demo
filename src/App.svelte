@@ -129,7 +129,7 @@ let loginChallenge: string | undefined;
 //         canConditionallyWebauthn = available;
 
 //         if (available) {
-//             loginChallenge = await fetch('https://low-tuna-73.deno.dev/challenge').then((response) => response.text());
+//             loginChallenge = await fetch('https://webauthn-server.sisou.deno.net/challenge').then((response) => response.text());
 //             console.warn('Login challenge:', loginChallenge);
 //             // TODO: Refresh challenge every 1 minute
 
@@ -145,7 +145,7 @@ let loginChallenge: string | undefined;
 
 async function passkeyLogin() {
     try {
-        loginChallenge = await fetch('https://low-tuna-73.deno.dev/challenge').then((response) => response.text());
+        loginChallenge = await fetch('https://webauthn-server.sisou.deno.net/challenge').then((response) => response.text());
         console.warn('Login challenge:', loginChallenge);
 
         const challenge = Nimiq.BufferUtils.fromBase64Url(loginChallenge!);
