@@ -152,12 +152,13 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@nimiq/core@^2.6.1":
-  version "2.6.1"
-  resolved "https://registry.yarnpkg.com/@nimiq/core/-/core-2.6.1.tgz#00b8f362725c5372a882d643ab351d26b65ffcfc"
-  integrity sha512-Wye2o2oSB8tpWwYzTEw8Mtte7SWM/cJ8NsBBb0lAYLL9OGx6lgBV0HOkruQWNBw9DBIPWrRo2oy4nVTQcy770A==
+"@nimiq/core@^2.20.0":
+  version "2.20.0"
+  resolved "https://registry.yarnpkg.com/@nimiq/core/-/core-2.20.0.tgz#c923cfbfedc53d00d3be235e6c1b281e10c51323"
+  integrity sha512-JJYQJRVoI61rulUbeMH83HPv3o+vfaivjk93t50YbYTo5QY4zx/yrpmX1Xsvjk3i2nszaC6iql22g7CPd4tUSQ==
   dependencies:
     comlink "^4.4.1"
+    vite-plugin-wasm "^3.5.0"
     websocket "^1.0.34"
 
 "@nodelib/fs.scandir@2.1.5":
@@ -912,6 +913,11 @@ vite-plugin-static-copy@^0.17.0:
     fast-glob "^3.2.11"
     fs-extra "^11.1.0"
     picocolors "^1.0.0"
+
+vite-plugin-wasm@^3.5.0:
+  version "3.6.0"
+  resolved "https://registry.yarnpkg.com/vite-plugin-wasm/-/vite-plugin-wasm-3.6.0.tgz#e67a544e22fffd4a6b5f925c47fd90a5530d277c"
+  integrity sha512-mL/QPziiIA4RAA6DkaZZzOstdwbW5jO4Vz7Zenj0wieKWBlNvIvX5L5ljum9lcUX0ShNfBgCNLKTjNkRVVqcsw==
 
 vite@^4.4.5:
   version "4.4.9"
