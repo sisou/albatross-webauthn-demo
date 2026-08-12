@@ -195,7 +195,7 @@ async function tapFaucet() {
         await client.getNetworkId(),
     );
 
-    tx.sign(faucetKeypair);
+    tx.sign(faucetKeypair, undefined);
 
     receiving = true;
     try {
@@ -239,7 +239,7 @@ async function send() {
     }
 
     try {
-        tx.verify();
+        tx.verify(await client.getProtocolVersion());
     } catch (error: any) {
         signatureError = error.message;
         return;
