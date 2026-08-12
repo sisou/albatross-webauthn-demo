@@ -100,7 +100,7 @@ export const address = derived<[Writable<Credential | undefined>], string | unde
         if (credential.multisigPubKey) {
             const multisigPubKey = Nimiq.PublicKey.fromHex(credential.multisigPubKey);
             const merkleRoot = Nimiq.MerkleTree.computeRoot([key.serialize(), multisigPubKey.serialize()]);
-            const address = new Nimiq.Address(merkleRoot);
+            const address = new Nimiq.Address(merkleRoot.subarray(0, 20));
             set(address.toUserFriendlyAddress());
         } else {
             set(key.toAddress().toUserFriendlyAddress());
